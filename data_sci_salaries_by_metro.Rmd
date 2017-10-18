@@ -1,0 +1,308 @@
+---
+title: "Data_Scientist_Salaries"
+author: "Silverio Vasquez"
+date: "October 17, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(RCurl)
+library(tidyverse)
+library(ggplot2)
+library(ggthemes)
+library(XML)
+library(rvest)
+library(stringr)
+library(data.table)
+```
+
+
+
+## Links to Indeed.com to do a salary search for Data Scientist jobs by metro
+
+```{r links}
+url_nyc <- "https://www.indeed.com/salaries/Data-Scientist-Salaries,-New-York-NY"
+url_sf <- "https://www.indeed.com/salaries/Data-Scientist-Salaries,-San-Francisco-CA"
+url_bost <- "https://www.indeed.com/salaries/Data-Scientist-Salaries,-Boston-MA"
+url_chi <- "https://www.indeed.com/salaries/Data-Scientist-Salaries,-Chicago-IL"
+```
+
+## Scrape webpage results for salary data in NYC, San Fran, Boston, and Chicago:
+
+
+```{r scrape}
+# lists to hold salary results and compensation results from webpages
+sal_nyc <- list()
+comp_nyc <- list()
+
+sal_sf <- list()
+comp_sf <- list()
+
+sal_bost <- list()
+comp_bost <- list()
+
+sal_chi <- list()
+comp_chi <- list()
+
+# for loop to go through all the search result pages on Indeed.com
+# each search result page holds about 10 listings of average salaries
+# which explains why the counter 'i' that gets attached to the url
+# jumps by 10 each time
+
+# First loop for NYC
+# j will act as an index for the list
+j=1
+for (i in seq(0,70,10)) {
+        # first page of results doesn't have a counter in the url
+        if (i == 0) link <- url_nyc else link <- paste0(url_nyc,"?start=",i)
+        
+        # the HTML/CSS is messy, but I found the CSS tags associated with 
+        # salary and average compensation
+        pg_sal <- read_html(link) %>% html_nodes('.cmp-sal-summary') %>% html_text()
+        pg_comp <- read_html(link) %>% html_nodes('.cmp-sal-links') %>% html_text()
+        
+        # save each table of search results as a list within a list
+        sal_nyc[j] <- list(pg_sal)
+        comp_nyc[j] <- list(pg_comp)
+        
+        # increase our index by 1 each time
+        j = j + 1
+}
+
+# Second loop for San Fran
+# j will act as an index for the list
+j=1
+for (i in seq(0,50,10)) {
+        # first page of results doesn't have a counter in the url
+        if (i == 0) link <- url_sf else link <- paste0(url_sf,"?start=",i)
+        
+        # the HTML/CSS is messy, but I found the CSS tags associated with 
+        # salary and average compensation
+        pg_sal <- read_html(link) %>% html_nodes('.cmp-sal-summary') %>% html_text()
+        pg_comp <- read_html(link) %>% html_nodes('.cmp-sal-links') %>% html_text()
+        
+        # save each table of search results as a list within a list
+        sal_sf[j] <- list(pg_sal)
+        comp_sf[j] <- list(pg_comp)
+        
+        # increase our index by 1 each time
+        j = j + 1
+}
+
+# Third loop for Boston
+# j will act as an index for the list
+j=1
+for (i in seq(0,50,10)) {
+        # first page of results doesn't have a counter in the url
+        if (i == 0) link <- url_bost else link <- paste0(url_bost,"?start=",i)
+        
+        # the HTML/CSS is messy, but I found the CSS tags associated with 
+        # salary and average compensation
+        pg_sal <- read_html(link) %>% html_nodes('.cmp-sal-summary') %>% html_text()
+        pg_comp <- read_html(link) %>% html_nodes('.cmp-sal-links') %>% html_text()
+        
+        # save each table of search results as a list within a list
+        sal_bost[j] <- list(pg_sal)
+        comp_bost[j] <- list(pg_comp)
+        
+        # increase our index by 1 each time
+        j = j + 1
+}
+
+# Fourth loop for Chicago
+# j will act as an index for the list
+j=1
+for (i in seq(0,20,10)) {
+        # first page of results doesn't have a counter in the url
+        if (i == 0) link <- url_chi else link <- paste0(url_chi,"?start=",i)
+        
+        # the HTML/CSS is messy, but I found the CSS tags associated with 
+        # salary and average compensation
+        pg_sal <- read_html(link) %>% html_nodes('.cmp-sal-summary') %>% html_text()
+        pg_comp <- read_html(link) %>% html_nodes('.cmp-sal-links') %>% html_text()
+        
+        # save each table of search results as a list within a list
+        sal_chi[j] <- list(pg_sal)
+        comp_chi[j] <- list(pg_comp)
+        
+        # increase our index by 1 each time
+        j = j + 1
+}
+
+```
+
+## Now that the data has been scraped from the web, it's time to clean it up
+
+```{r cleanup}
+####################################################
+# Cleanup NYC Data
+####################################################
+
+# following two lines turn the nest listed into a dataframe
+dfs <- lapply(comp_nyc, data.frame, stringsAsFactors = FALSE)
+y <- bind_rows(dfs)
+
+# ugly solution to clean up extra text after name of company...
+colnames(y) <- "company"
+a <- str_split_fixed(y$company,'-',2)
+colnames(a) <- c('name','misc')
+a <- a[,-2]
+a <- str_split_fixed(a,' Jobs',2)
+
+# following two lines turn the nest listed into a dataframe
+dfs2 <- lapply(sal_nyc, data.frame, stringsAsFactors = FALSE)
+z <- bind_rows(dfs2)
+colnames(z) <- "salary"
+
+# removes the row of national wide average that appears on every search result page
+z2 <- data.frame(z[!grepl("Average", z$salary),])
+colnames(z2) <- "salary"
+
+# combines company and offered Data Scientist salary in a 2-column dataframe
+nyc <- data.frame(cbind(a[,1], z2))
+colnames(nyc) <- c('company','salary')
+
+nyc$salary <- gsub('^[0-9]+','',as.character(nyc$salary))
+nyc[] <- lapply(nyc, as.character)
+nyc$salary <- as.numeric(unlist(str_replace_all(str_extract_all(nyc$salary, '[[0-9]+,.]{2,}'),',','')))
+
+# write.csv(nyc,file="nyc_company_salary.csv")
+
+####################################################
+# Now same cleanup for San Fran
+####################################################
+
+# following two lines turn the nest listed into a dataframe
+dfs <- lapply(comp_sf, data.frame, stringsAsFactors = FALSE)
+y <- bind_rows(dfs)
+
+# ugly solution to clean up extra text after name of company...
+colnames(y) <- "company"
+a <- str_split_fixed(y$company,'-',2)
+colnames(a) <- c('name','misc')
+a <- a[,-2]
+a <- str_split_fixed(a,' Jobs',2)
+
+# following two lines turn the nest listed into a dataframe
+dfs2 <- lapply(sal_sf, data.frame, stringsAsFactors = FALSE)
+z <- bind_rows(dfs2)
+colnames(z) <- "salary"
+
+# removes the row of national wide average that appears on every search result page
+z2 <- data.frame(z[!grepl("Average", z$salary),])
+colnames(z2) <- "salary"
+
+# combines company and offered Data Scientist salary in a 2-column dataframe
+sf <- data.frame(cbind(a[,1], z2))
+colnames(sf) <- c('company','salary')
+
+sf$salary <- gsub('^[0-9]+','',as.character(sf$salary))
+sf[] <- lapply(sf, as.character)
+
+sf$salary <- as.numeric(unlist(str_replace_all(str_extract_all(sf$salary, '[[0-9]+,.]{2,}'),',','')))
+
+# Annualize per hour compensation rate by assuming a 40-hour work week
+sf$salary[48] <- sf$salary[48]*40*52
+sf$salary[50] <- sf$salary[50]*40*52
+
+# write.csv(sf,file="sf_company_salary.csv")
+
+####################################################
+# Now same cleanup for Boston
+####################################################
+
+# following two lines turn the nest listed into a dataframe
+dfs <- lapply(comp_bost, data.frame, stringsAsFactors = FALSE)
+y <- bind_rows(dfs)
+
+# ugly solution to clean up extra text after name of company...
+colnames(y) <- "company"
+a <- str_split_fixed(y$company,'-',2)
+colnames(a) <- c('name','misc')
+a <- a[,-2]
+a <- str_split_fixed(a,' Jobs',2)
+
+# following two lines turn the nest listed into a dataframe
+dfs2 <- lapply(sal_bost, data.frame, stringsAsFactors = FALSE)
+z <- bind_rows(dfs2)
+colnames(z) <- "salary"
+
+# removes the row of national wide average that appears on every search result page
+z2 <- data.frame(z[!grepl("Average", z$salary),])
+colnames(z2) <- "salary"
+
+# combines company and offered Data Scientist salary in a 2-column dataframe
+bost <- data.frame(cbind(a[,1], z2))
+colnames(bost) <- c('company','salary')
+
+bost$salary <- gsub('^[0-9]+','',as.character(bost$salary))
+bost[] <- lapply(bost, as.character)
+
+bost$salary <- as.numeric(unlist(str_replace_all(str_extract_all(bost$salary, '[[0-9]+,.]{2,}'),',','')))
+
+# write.csv(bost,file="bost_company_salary.csv")
+
+####################################################
+# Now same cleanup for Chicago
+####################################################
+
+# following two lines turn the nest listed into a dataframe
+dfs <- lapply(comp_chi, data.frame, stringsAsFactors = FALSE)
+y <- bind_rows(dfs)
+
+# ugly solution to clean up extra text after name of company...
+colnames(y) <- "company"
+a <- str_split_fixed(y$company,'-',2)
+colnames(a) <- c('name','misc')
+a <- a[,-2]
+a <- str_split_fixed(a,' Jobs',2)
+
+# following two lines turn the nest listed into a dataframe
+dfs2 <- lapply(sal_chi, data.frame, stringsAsFactors = FALSE)
+z <- bind_rows(dfs2)
+colnames(z) <- "salary"
+
+# removes the row of national wide average that appears on every search result page
+z2 <- data.frame(z[!grepl("Average", z$salary),])
+colnames(z2) <- "salary"
+
+# combines company and offered Data Scientist salary in a 2-column dataframe
+chi <- data.frame(cbind(a[,1], z2))
+colnames(chi) <- c('company','salary')
+
+chi[] <- lapply(chi, as.character)
+chi$salary <- as.numeric(unlist(str_replace_all(str_extract_all(chi$salary, '[[0-9]+,.]{2,}'),',','')))
+
+# Annualize per hour compensation rate by assuming a 40-hour work week
+chi$salary[18] <- chi$salary[18]*40*52
+
+# write.csv(chi,file="chi_company_salary.csv")
+```
+
+## The histogram charts below show wide dispersions Data Scientist salaries in these four metros
+
+```{r histograms}
+options(scipen = 9)
+
+qplot(nyc$salary, geom="histogram",  xlab="Salaries",
+      main = "Histogram for NYC Data Scientist Salaries", fill=I("blue"), 
+      col=I("black"), xlim=c(min(nyc$salary)-10000,max(nyc$salary)+10000),
+      breaks=seq(min(nyc$salary)-10000, max(nyc$salary)+10000,by=5000))
+
+qplot(sf$salary, geom="histogram", xlab="Salaries",
+      main = "Histogram for San Fran Data Scientist Salaries", fill=I("blue"), 
+      col=I("black"), xlim=c(min(sf$salary)-10000,max(sf$salary)+10000),
+      breaks=seq(min(sf$salary)-10000, max(sf$salary)+10000,by=10000))
+
+qplot(bost$salary, geom="histogram", xlab="Salaries",
+      main = "Histogram for Boston Data Scientist Salaries", fill=I("blue"), 
+      col=I("black"), xlim=c(min(bost$salary)-10000,max(bost$salary)+10000),
+      breaks=seq(min(bost$salary)-10000, max(bost$salary)+10000,by=10000))
+
+qplot(chi$salary, geom="histogram", xlab="Salaries",
+      main = "Histogram for Chicago Data Scientist Salaries", fill=I("blue"), 
+      col=I("black"), xlim=c(min(chi$salary)-10000,max(chi$salary)+10000),
+      breaks=seq(min(chi$salary)-10000, max(chi$salary)+10000,by=10000))
+
+```
