@@ -1,6 +1,6 @@
 ---
 title: "Data_Scientist_Salaries"
-author: "Silverio Vasquez"
+author: "Silverio Vasquez & Nathan Cooper"
 date: "October 17, 2017"
 output: html_document
 ---
@@ -306,3 +306,358 @@ qplot(chi$salary, geom="histogram", xlab="Salaries",
       breaks=seq(min(chi$salary)-10000, max(chi$salary)+10000,by=10000))
 
 ```
+
+### Prelimanary Analysis of Salary Data
+
+To make a more fair comparision of salaries we must take into account cost of living for each city. We will first gather the cost of living indexes from https://www.numbeo.com/cost-of-living/region_rankings.jsp?title=2017-mid&region=019. Note that webscrapping the entire table is costly in terms of time and computer resources, so we will hand pick the cities we need: New York City, San Fransisco, Boston, and Chicago. Also the number are reported as percentages, so we will take the additional step of dividing by 100 to put them into decimal format.
+
+```{r col_index, eval=TRUE}
+col_index <- data.frame(matrix(c(c('NYC', 'SanFran', 'Boston', 'Chicago'), c(100.00/100, 101.94/100, 90.23/100,84.39/100)), ncol = 2))
+col_index <- col_index %>% rename('City' = X1,'COL.Index' = X2)
+col_index[,2] <- col_index[,2] %>% as.character() %>% as.numeric() 
+col_index
+```
+
+
+### Confidence Intervals Unadjusted for Cost of Living
+
+We will begin our comparision by calculating 95% Confidence Intervals without Adjusting for Cost of Living.
+
+#### New York City
+
+
+```{r nyc_ci_un, eval=TRUE}
+nyc_mean <- nyc$salary %>% mean()
+nyc_mean
+nyc_sd <- nyc$salary %>% sd()
+nyc_sd
+nyc_lower <- nyc_mean - 1.96*nyc_sd
+nyc_upper <- nyc_mean + 1.96*nyc_sd
+nyc_ci <- c(nyc_lower, nyc_upper)
+nyc_ci
+```
+
+#### San Fransisco
+
+```{r sf_ci_un, eval=TRUE}
+sf_mean <- sf$salary %>% mean()
+sf_mean
+sf_sd <- sf$salary %>% sd()
+sf_sd
+sf_lower <- sf_mean - 1.96*sf_sd
+sf_upper <- sf_mean + 1.96*sf_sd
+sf_ci <- c(sf_lower, sf_upper)
+sf_ci
+```
+
+
+#### Boston
+
+
+```{r bost_ci_un, eval=TRUE}
+bost_mean <- bost$salary %>% mean()
+bost_mean
+bost_sd <- bost$salary %>% sd()
+bost_sd
+bost_lower <- bost_mean - 1.96*bost_sd
+bost_upper <- bost_mean + 1.96*bost_sd
+bost_ci <- c(bost_lower, bost_upper)
+bost_ci
+```
+
+#### Chicago
+
+
+```{r chi_ci_un, eval=TRUE}
+chi_mean <- chi$salary %>% mean()
+chi_mean
+chi_sd <- chi$salary %>% sd()
+chi_sd
+chi_lower <- chi_mean - 1.96*chi_sd
+chi_upper <- chi_mean + 1.96*chi_sd
+chi_ci <- c(chi_lower, chi_upper)
+chi_ci
+```
+
+There is quite a bit of overlap between all cities, so we expect that they should be consistant with each other regarding a student's t-test.
+
+### Student t-tests and K-S tests of the Salary Data Unadjusted for Cost of Living Idex
+
+Student's t-tests are used to check if the means of two samples are different from each other. The Null Hyopothesis is that the true diffenence in means of the populations the samples are drawn from is 0. The alternatibe hypothesis is that the difference in the population means is not zero. If the null is rejected you can infere that the two populations are different. For the t-test to be valid the samples must have a Normal Distribution and have similar variences. 
+
+Kologomorov-Smirnov (KS) tests test the same null and alternative hypothesis as the Student's t-test. The KS-test analyzes differences in the Cumulative Distribution Function (CDF) of the two samples. Unlike the t-test, you do not have to make any assumptions about the samples.
+
+We need to analyze pairs out of 4 cities this invovles 6 combinations:
+
+```{r combn, eval=TRUE}
+combn(4,2)
+```
+
+#### New York and San Fransisco t-test
+
+```{r t_n_s, eval=TRUE}
+t.test(nyc$salary,sf$salary)
+```
+According to Student's t-test New York's and San Fransisco's salaries are similar before accounting for cost of living.
+
+#### New York and Boston t-test
+
+```{r t_n_b, eval=TRUE}
+t.test(nyc$salary,bost$salary)
+```
+According to Student's t-test New York's and Boston's salaries are different before accounting for cost of living.
+
+#### New York and Chicago t-test
+
+```{r t_n_c, eval=TRUE}
+t.test(nyc$salary,chi$salary)
+```
+According to Student's t-test New York's and Chicago's salaries are different before accounting for cost of living.
+
+#### San Fransisco and Boston t-test
+
+```{r t_s_b, eval=TRUE}
+t.test(sf$salary,bost$salary)
+```
+According to Student's t-test San Fransisco's and Boston's salaries are different before accounting for cost of living.
+
+#### San Fransisco and Chicago t-test
+
+```{r t_s_c, eval=TRUE}
+t.test(sf$salary,chi$salary)
+```
+According to Student's t-test San Fransisco's and Chicago's salaries are different before accounting for cost of living.
+
+#### Boston and Chicago t-test
+
+```{r t_b_c, eval=TRUE}
+t.test(bost$salary,chi$salary)
+```
+
+Boston and Chicago's Salaries are similar under Student's t-test.
+
+```{r box_pl, eval=TRUE}
+# par(mfrow = c(4,1))
+# boxplot(nyc$salary, horizontal = TRUE)
+# boxplot(sf$salary, horizontal = TRUE)
+# boxplot(bost$salary, horizontal = TRUE)
+# boxplot(chi$salary, horizontal = TRUE)
+```
+
+#### New York and San Fransisco KS-test
+
+```{r k_n_s, eval=TRUE}
+ks.test(nyc$salary,sf$salary, exact = TRUE)
+```
+According to the KS test New York's and San Fransisco's salaries are similar before accounting for cost of living.
+
+#### New York and Boston KS-test
+
+```{r k_n_b, eval=TRUE}
+ks.test(nyc$salary,bost$salary, exact = TRUE)
+```
+According to the KS test New York's and Boston's salaries are different before accounting for cost of living.
+
+#### New York and Chicago KS-test
+
+```{r k_n_c, eval=TRUE}
+ks.test(nyc$salary,chi$salary, exact = TRUE)
+```
+According to the KS test New York's and Chicago's salaries are different before accounting for cost of living.
+
+#### San Fransisco and Boston KS-test
+
+```{r k_s_b, eval=TRUE}
+ks.test(sf$salary,bost$salary, exact = TRUE)
+```
+According to the KS test San Fransisco's and Boston's salaries are different before accounting for cost of living.
+
+#### San Fransisco and Chicago KS-test
+
+```{r k_s_c, eval=TRUE}
+ks.test(sf$salary,chi$salary, exact = TRUE)
+```
+According to the KS test San Fransisco's and Chicago's salaries are different before accounting for cost of living.
+
+#### Boston and Chicago KS-test
+
+```{r k_b_c, eval=TRUE}
+ks.test(bost$salary,chi$salary, exact = TRUE)
+```
+
+According to the KS test Boston's and Chicago's salaries are different before accounting for cost of living.
+
+Regardless of the test used, only New York and San Fransisco had similar salary distributions.
+
+### Adjusting for Cost of Living
+
+Now we will take the salary data and divide by the Cost of Livining index. In this way lower cost of living salaries (i.e., < 1) will be increased to reflect more purchasing power per dollar, and cities with higher cost of living (>1) will have there salaries decreased to reflect less purchasing power per dollar.
+
+```{r col_adj, eval=TRUE}
+head(nyc$salary)
+adj_nyc <- nyc$salary/col_index[1,2]
+head(adj_nyc)
+head(sf$salary)
+adj_sf <- sf$salary/col_index[2,2]
+head(adj_sf)
+head(bost$salary)
+adj_bost <- bost$salary/col_index[3,2]
+head(adj_bost)
+head(chi$salary)
+adj_chi <- chi$salary/col_index[4,2]
+head(adj_chi)
+```
+### Confidence Intervals Adjusted for Cost of Living
+
+We will begin our comparision by calculating 95% Confidence Intervals without Adjusting for Cost of Living.
+
+#### New York City
+
+
+```{r nyc_ci_adj, eval=TRUE}
+nyc_mean_adj <- adj_nyc %>% mean()
+nyc_mean_adj
+nyc_sd_adj <- adj_nyc %>% sd()
+nyc_sd_adj
+nyc_lower_adj <- nyc_mean_adj - 1.96*nyc_sd_adj
+nyc_upper_adj <- nyc_mean_adj + 1.96*nyc_sd_adj
+nyc_ci_adj <- c(nyc_lower_adj, nyc_upper_adj)
+nyc_ci_adj
+```
+
+#### San Fransisco
+
+```{r sf_ci_adj, eval=TRUE}
+sf_mean_adj <- adj_sf %>% mean()
+sf_mean_adj
+sf_sd_adj <- adj_sf %>% sd()
+sf_sd_adj
+sf_lower_adj <- sf_mean_adj - 1.96*sf_sd_adj
+sf_upper_adj <- sf_mean_adj + 1.96*sf_sd_adj
+sf_ci_adj <- c(sf_lower_adj, sf_upper_adj)
+sf_ci_adj
+```
+
+
+#### Boston
+
+
+```{r bost_ci_adj, eval=TRUE}
+bost_mean_adj <- adj_bost %>% mean()
+bost_mean_adj
+bost_sd_adj <- adj_bost %>% sd()
+bost_sd_adj
+bost_lower_adj <- bost_mean_adj - 1.96*bost_sd_adj
+bost_upper_adj <- bost_mean_adj + 1.96*bost_sd_adj
+bost_ci_adj <- c(bost_lower_adj, bost_upper_adj)
+bost_ci_adj
+```
+
+#### Chicago
+
+
+```{r chi_ci_adj, eval=TRUE}
+chi_mean_adj <- adj_chi %>% mean()
+chi_mean_adj
+chi_sd_adj <- adj_chi %>% sd()
+chi_sd_adj
+chi_lower_adj <- chi_mean_adj - 1.96*chi_sd_adj
+chi_upper_adj <- chi_mean_adj + 1.96*chi_sd_adj
+chi_ci_adj <- c(chi_lower_adj, chi_upper_adj)
+chi_ci_adj
+```
+
+There is quite a bit of overlap between all cities, however we did see some statiscally significant differences even when the CI's overlapped in the pervious section.
+
+### Student t-tests and K-S tests of the Salary Data Adjusted for Cost of Living Idex
+
+Here we repeat the analysis from above with salary data that has been adjusted for cost of living. 
+
+
+#### New York and San Fransisco t-test
+
+```{r ta_n_s, eval=TRUE}
+t.test(adj_nyc,adj_sf)
+```
+According to Student's t-test New York's and San Fransisco's salaries are similar after accounting for cost of living.
+
+#### New York and Boston t-test
+
+```{r ta_n_b, eval=TRUE}
+t.test(adj_nyc,adj_bost)
+```
+According to Student's t-test New York's and Boston's salaries are different after accounting for cost of living. Hoever, the margin has dropped quite a bit.
+
+#### New York and Chicago t-test
+
+```{r ta_n_c, eval=TRUE}
+t.test(adj_nyc,adj_chi)
+```
+According to Student's t-test New York's and Chicago's salaries are not different after accounting for cost of living.
+
+#### San Fransisco and Boston t-test
+
+```{r ta_s_b, eval=TRUE}
+t.test(adj_sf,adj_bost)
+```
+According to Student's t-test San Fransisco's and Boston's salaries are not different after accounting for cost of living.
+
+#### San Fransisco and Chicago t-test
+
+```{r ta_s_c, eval=TRUE}
+t.test(adj_sf,adj_chi)
+```
+According to Student's t-test San Fransisco's and Chicago's salaries are not different after accounting for cost of living.
+
+#### Boston and Chicago t-test
+
+```{r ta_b_c, eval=TRUE}
+t.test(adj_bost,adj_chi)
+```
+
+Boston and Chicago's Salaries are no longer similar under Student's t-test when adjusting for cost of living.
+
+#### New York and San Fransisco KS-test
+
+```{r ka_n_s, eval=TRUE}
+ks.test(adj_nyc,adj_sf, exact = TRUE)
+```
+According to the KS test New York's and San Fransisco's salaries are similar after accounting for cost of living.
+
+#### New York and Boston KS-test
+
+```{r ka_n_b, eval=TRUE}
+ks.test(adj_nyc,adj_bost, exact = TRUE)
+```
+According to the KS test New York's and Boston's salaries are different after accounting for cost of living.
+
+#### New York and Chicago KS-test
+
+```{r ka_n_c, eval=TRUE}
+ks.test(adj_nyc,adj_chi, exact = TRUE)
+```
+According to the KS test New York's and Chicago's salaries are not different after accounting for cost of living.
+
+#### San Fransisco and Boston KS-test
+
+```{r ka_s_b, eval=TRUE}
+ks.test(adj_sf,adj_bost, exact = TRUE)
+```
+According to the KS test San Fransisco's and Boston's salaries are different after accounting for cost of living.
+
+#### San Fransisco and Chicago KS-test
+
+```{r ka_s_c, eval=TRUE}
+ks.test(adj_sf,adj_chi, exact = TRUE)
+```
+According to the KS test San Fransisco's and Chicago's salaries are not different after accounting for cost of living.
+
+#### Boston and Chicago KS-test
+
+```{r ka_b_c, eval=TRUE}
+ks.test(adj_bost,adj_chi, exact = TRUE)
+```
+
+According to the KS test Boston's and Chicago's salaries are different after accounting for cost of living.
+
+After adjusting for Cost of Living, Chicago became similar to New York and San Fransisco but Boston remained different.
