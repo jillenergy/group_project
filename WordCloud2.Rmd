@@ -24,8 +24,10 @@ joblistny <- read.csv("https://raw.githubusercontent.com/delagroove/dataScience/
 joblistma <- read.csv("https://raw.githubusercontent.com/delagroove/dataScience/master/jobOffers_final_with_dupes_reduced.csv", stringsAsFactors = FALSE)
 joblistsf <- read.csv("https://raw.githubusercontent.com/delagroove/dataScience/master/jobOffers_SF.csv", stringsAsFactors=FALSE)
 joblistsf <- joblistsf[,-1]
+joblistchi <- read.csv("https://raw.githubusercontent.com/delagroove/dataScience/master/jobOffers_CHI.csv", stringsAsFactors=FALSE)
+joblistchi <- joblistchi[,-1]
 
-joblisttidy <- rbind(joblistma, joblistny, joblistsf)
+joblisttidy <- rbind(joblistma, joblistny, joblistsf,joblistchi)
 joblisttidy <- joblisttidy[,-5]
 joblisttidy <- subset(joblisttidy, duplicated(joblisttidy)==FALSE)
 joblisttidy$location <- unlist(str_extract_all(joblisttidy$location, "[[:upper:]]{1}[[:lower:]]{2,}, [[:alpha:]]{2}|[[:upper:]]{1}[[:lower:]]{2,} [[:alpha:]]{2,}, [[:alpha:]]{2}"))
