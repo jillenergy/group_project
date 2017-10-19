@@ -1,0 +1,48 @@
+---
+title: "WordCloud2"
+author: "Sarah Widgodsky & Nathan Cooper"
+date: "October 19, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r libraries, eval=TRUE}
+suppressMessages(suppressWarnings(library("tm")))
+suppressMessages(suppressWarnings(library("wordcloud")))
+suppressMessages(suppressWarnings(library("tidyr")))
+suppressMessages(suppressWarnings(library("stringr")))
+suppressMessages(suppressWarnings(library("SnowballC")))
+```
+
+I start with Sarah's code for putting the data into data frames:
+```{r data_input, eval=TRUE}
+joblistny <- read.csv("https://raw.githubusercontent.com/delagroove/dataScience/master/jobOffers_ny.csv", stringsAsFactors=FALSE)
+joblistma <- read.csv("https://raw.githubusercontent.com/delagroove/dataScience/master/jobOffers_final_with_dupes_reduced.csv", stringsAsFactors = FALSE)
+joblistsf <- read.csv("https://raw.githubusercontent.com/delagroove/dataScience/master/jobOffers_SF.csv", stringsAsFactors=FALSE)
+joblistsf <- joblistsf[,-1]
+
+joblisttidy <- rbind(joblistma, joblistny, joblistsf)
+joblisttidy <- joblisttidy[,-5]
+joblisttidy <- subset(joblisttidy, duplicated(joblisttidy)==FALSE)
+joblisttidy$location <- unlist(str_extract_all(joblisttidy$location, "[[:upper:]]{1}[[:lower:]]{2,}, [[:alpha:]]{2}|[[:upper:]]{1}[[:lower:]]{2,} [[:alpha:]]{2,}, [[:alpha:]]{2}"))
+head(joblisttidy)
+```
+
+Now I will be using the description column to create a word cloud.
+https://www.r-bloggers.com/building-wordclouds-in-r/
+https://georeferenced.wordpress.com/2013/01/15/rwordcloud/
+Were my sources for the procedure
+
+```{r cloud, eval=TRUE}
+dsCloud <- Corpus(VectorSource(joblisttidy$description))
+dsCloud <- tm_map(dsCloud, removePunctuation)
+dsCloud <- tm_map(dsCloud, tolower)
+dsCloud <- tm_map(dsCloud, removeWords, c("data","science","scientist" , "you" ,"will",stopwords('english')))
+wordcloud(dsCloud, max.words = 50, random.order = FALSE, scale=c(3,.15),random.color = FALSE,colors=palette())
+```
+
+I had to remove a few words like: Data, Science, Scientist, you, and will along with the stop words (e.g., "the"). Note that text stemming was not useful in this application as it truncated words like experience and business. 
