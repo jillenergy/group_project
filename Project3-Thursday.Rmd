@@ -20,6 +20,15 @@ ANALYZING: developing relevant dataframes from the databases. (Nathan Cooper)
 
 VISUALIZING: creating graphs and descriptions of the conclusions from the analysis. (Jill Anderson)
 
+#### Executive Summary
+
+\begin{itemize}
+\item Python, SQL, and R are the most frequently referenced computer skills.
+\item Machine Learning and Statistical Modeling are the most referenced analytical skills.
+\item Collaboration and Communication are the most referenced soft skills.
+\item Data analyzed sourced from glassdoor.com job searches.
+\end{itemize}
+
 
 ####Importing Libraries
 ```{r libraries, eval=TRUE}
