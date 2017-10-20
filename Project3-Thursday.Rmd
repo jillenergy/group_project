@@ -208,4 +208,4 @@ wordcloud(dsCloud, max.words = 50, random.order = FALSE, scale=c(3,.15),random.c
 
 \n\ For analytical skills, Machine Learnings is the most in demand.
 
-Our conclusion/recommendation for universities offering Data Science/Analytics programs is to focus on the skills that employers seek the most such as, Python, SQL, Machine Learning, Communication, and Teamwork. This will help prepare graduates enter the workforce prompt after graduation.
+Our conclusion/recommendation for universities offering Data Science/Analytics programs is to focus on the skills that employers seek the most such as, Python, SQL, Machine Learning, Communication, and Teamwork. This will help prepare graduates enter the workforce promptly after graduation.
