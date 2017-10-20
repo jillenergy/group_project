@@ -1,0 +1,211 @@
+---
+title: "DATA_607_Project3- Data Science Skills"
+authors: "Jill Anderson, Alvaro Bueno Castillo, Nathan Cooper, Silverio Vasquez, Sarah Wigodsky"
+date: "October 19, 2017"
+output: html_document
+---
+
+####Group 1: Jill Anderson, Alvaro Bueno Castillo, Nathan Cooper, Silverio Vasquez, Sarah Wigodsky
+
+###INTRODUCTION & APPROACH 
+\n\ This project addresses the question: "What are the most valued data science skills? 
+
+\n\ To answer this question, the team took the following approach:
+
+COLLECTING: mined the job board Glassdoor.com to identify which skills were requested the most frequently in job descriptions. (Alvaro Bueno & Silverio Vasquez)
+
+TIDYING: creating databases from the raw data. (Sarah Wigodsky)
+
+ANALYZING: developing relevant dataframes from the databases. (Nathan Cooper)
+
+VISUALIZING: creating graphs and descriptions of the conclusions from the analysis. (Jill Anderson)
+
+
+####Importing Libraries
+```{r libraries, eval=TRUE}
+suppressWarnings(suppressMessages(library(stringr)))
+suppressWarnings(suppressMessages(library(dplyr)))
+suppressWarnings(suppressMessages(library(RCurl)))
+suppressWarnings(suppressMessages(library(tidyr)))
+suppressWarnings(suppressMessages(library(ggplot2)))
+suppressWarnings(suppressMessages(library(rvest)))
+suppressMessages(suppressWarnings(library(tm)))
+suppressMessages(suppressWarnings(library(wordcloud)))
+suppressMessages(suppressWarnings(library(SnowballC)))
+```
+
+####Webscraping code
+```{r webscrape, eval=FALSE}
+
+jobOffers <- data.frame(job_title=character(), company=character(), location=character(), description=character(), age=character())
+
+# the urls of your 88 pages, links for ny, sf and boston from glassdoor
+
+base_url <- "https://www.glassdoor.com"
+main_url_boston <- "/Job/jobs.htm?suggestCount=0&suggestChosen=true&clickSource=searchBtn&typedKeyword=data+sc&sc.keyword=data+scientist&locT=C&locId=1154532&jobType="
+main_url_ny <- "/Job/jobs.htm?suggestCount=0&suggestChosen=false&clickSource=searchBtn&typedKeyword=data+scientist&sc.keyword=data+scientist&locT=C&locId=1132348&jobType="
+main_url_sf <- "/Job/jobs.htm?suggestCount=0&suggestChosen=false&clickSource=searchBtn&typedKeyword=data+scientist&sc.keyword=data+scientist&locT=C&locId=1147401&jobType="
+main_url <- "/Job/jobs.htm?suggestCount=0&suggestChosen=true&clickSource=searchBtn&typedKeyword=data+sci&sc.keyword=data+scientist&locT=C&locId=1128808&jobType="
+
+links <- read_html(paste(base_url,main_url, sep="")) %>% html_nodes(xpath='//a[contains(@class, "jobLink")]')  %>% xml_attr("href")
+next_link <-  read_html(paste(base_url,main_url, sep="")) %>% html_nodes(xpath='//li[contains(@class, "next")]//a')  %>% xml_attr("href")
+count <- 0
+
+# get links from 20 pages only
+
+while(count < 20) {
+  newLinks <- read_html(paste(base_url,next_link, sep="")) %>% html_nodes(xpath='//a[contains(@class, "jobLink")]')  %>% xml_attr("href")
+  links <- c(links, newLinks)
+  next_link <-  read_html(paste(base_url,next_link, sep="")) %>% html_nodes(xpath='//li[contains(@class, "next")]//a')  %>% xml_attr("href")
+  count <- count + 1
+}
+
+# process only the first 400 links
+for(the_link in links[1:400]){
+  tryCatch({
+  jobOffer <- NULL
+
+  the_html <- read_html(paste(base_url, the_link, sep=""))
+
+  jobOffer$job_title <- the_html  %>% html_nodes(xpath='//div[contains(@class, "header")]//h2') %>% html_text()
+  
+  jobOffer$company <- the_html %>% html_nodes(xpath='//div[contains(@class, "header")]//span[contains(@class, "ib padRtSm")]') %>% html_text()
+  jobOffer$location <- the_html %>% html_nodes(xpath='//div[contains(@class, "header")]//span[contains(@class, "subtle ib")]') %>% html_text()
+  jobOffer$description <- the_html %>% html_nodes(xpath='//div[contains(@class, "jobDescriptionContent")]') %>% html_text()
+  jobOffer$age <- the_html %>% html_nodes(xpath='//div[contains(@class, "cell alignRt showDesk")]//span[contains(@class, "minor nowrap")]') %>% html_text()
+
+  jobOffers <- rbind(jobOffers, data.frame(job_title=jobOffer$job_title, company=jobOffer$company, location=jobOffer$location, description=jobOffer$description, age=jobOffer$age))
+  print("job added.")
+  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}
+
+# write.csv(jobOffers, file = "jobOffers_CHI.csv")
+``` 
+
+####Importing the data from Glassdoor for Boston
+```{r importingdataMA, eval=TRUE}
+joblistma <- read.csv("https://raw.githubusercontent.com/delagroove/dataScience/master/jobOffers_final_with_dupes_reduced.csv", stringsAsFactors = FALSE)
+```
+
+####Importing data from Glassdoor for NYC
+```{r importingdataNY, eval=TRUE}
+joblistny <- read.csv("https://raw.githubusercontent.com/delagroove/dataScience/master/jobOffers_ny.csv", stringsAsFactors=FALSE)
+```
+
+####Importing data from Glassdoor for San Fran
+```{r importingdataSF, eval=TRUE}
+joblistsf <- read.csv("https://raw.githubusercontent.com/delagroove/dataScience/master/jobOffers_SF.csv", stringsAsFactors=FALSE)
+joblistsf <- joblistsf[,-1]
+```
+
+####Importing data from Glassdoor for Chicago
+```{r importingdataChi, eval=TRUE}
+joblistchi <- read.csv("https://raw.githubusercontent.com/delagroove/dataScience/master/jobOffers_CHI.csv", stringsAsFactors=FALSE)
+joblistchi <- joblistchi[,-1]
+```
+
+####Combining data tables from Boston, NYC, San Fran, and Chicago
+```{r combining-data, eval=TRUE}
+joblisttidy <- rbind(joblistma, joblistny, joblistsf, joblistchi)
+```
+
+
+####Eliminating Duplicate Entries
+\n\ Since some companies post the same job on different days, the posted date column is elimintated prior to testing for duplicate entries.
+```{r eliminate_duplicates, eval=TRUE}
+joblisttidy <- joblisttidy[,-5]
+joblisttidy <- subset(joblisttidy, duplicated(joblisttidy)==FALSE)
+```
+
+####Eliminating symbols in front of location
+```{r location, eval = TRUE}
+joblisttidy$location <- unlist(str_extract_all(joblisttidy$location, "[[:upper:]]{1}[[:lower:]]{2,}, [[:alpha:]]{2}|[[:upper:]]{1}[[:lower:]]{2,} [[:alpha:]]{2,}, [[:alpha:]]{2}"))
+joblisttidy$description <- gsub("[^[:ascii:]]", "", joblisttidy$description, perl=T)
+```
+
+####Identifying Job Descriptions that look for specific Computer Skills
+```{r computerskills, eval=TRUE}
+compskills <- joblisttidy %>%
+  mutate(python = grepl("python", description, ignore.case=TRUE)) %>%
+  mutate(perl = grepl("perl", description, ignore.case=TRUE)) %>%
+  mutate(Cplusplus = grepl("C++", description, fixed=TRUE)) %>%
+  mutate(SQL = grepl("SQL", description)) %>%
+  mutate(java = grepl("java\\b", description, ignore.case=TRUE)) %>%
+  mutate(javascript = grepl("javascript", description, ignore.case=TRUE)) %>%
+  mutate(R = grepl("\\bR\\b,", description)) %>%
+  mutate(hadoop = grepl("hadoop", description, ignore.case=TRUE)) %>%
+  mutate(spark = grepl("spark", description, ignore.case=TRUE)) %>%
+  mutate(scala = grepl("scala", description, ignore.case=TRUE)) %>%
+  select(job_title, company, python, perl, Cplusplus, SQL, java, javascript, R, hadoop, spark, scala)
+summary(compskills)
+
+```
+
+####Identifying analytical skills
+```{r analytical-skills, eval=TRUE}
+skills <- joblisttidy %>%
+  mutate(machinelearning = grepl("machine learning", description, ignore.case=TRUE)) %>%
+  mutate(statisticalmodeling = grepl("statistical model", description, ignore.case=TRUE)) %>%
+  mutate(techwriting = grepl("technical writing", description, ignore.case=TRUE)) %>%
+  mutate(plateau = grepl("plateau", description, ignore.case=TRUE)) %>%
+  mutate(d3 = grepl("D3", description)) %>%
+  select(job_title, company, machinelearning, statisticalmodeling, techwriting, plateau, d3)
+summary(skills)  
+
+```
+
+####Identifying soft skills
+```{r soft-skills, eval=TRUE}
+softskills <- joblisttidy %>%
+  mutate(collaborative = grepl("collaborat", description, ignore.case=TRUE)) %>%
+  mutate(organized = grepl("organized", description, ignore.case=TRUE)) %>%
+  mutate(selfstarter = grepl("self starter", description, ignore.case=TRUE)) %>%
+  mutate(attndetail = grepl("attention to detail", description, ignore.case=TRUE)) %>%
+  mutate(communication = grepl("communicat", description, ignore.case=TRUE)) %>%
+  mutate(creative = grepl("creativ", description, ignore.case=TRUE)) %>%
+  mutate(visualization = grepl("visualization", description, ignore.case=TRUE)) %>%
+  select(job_title, company, collaborative, organized, selfstarter, attndetail, communication, creative, visualization)
+summary(softskills)  
+
+```
+
+###Barplots
+```{r bars}
+cskills <- compskills %>% select(-(1:2)) %>% summarise_all(sum) %>% gather(variable,value) %>% arrange(desc(value))
+
+skills2 <- skills %>% select(-(1:2)) %>% summarise_all(sum) %>% gather(variable,value) %>% arrange(desc(value))
+
+sskills <- softskills %>% select(-(1:2)) %>% summarise_all(sum) %>% gather(variable,value) %>% arrange(desc(value))
+
+ggplot(cskills,aes(x=reorder(variable, value), y=value)) + geom_bar(stat='identity',fill="steelblue") + xlab('') + ylab('Count') + labs(title='Computer Skills') + coord_flip() + theme_minimal()
+
+ggplot(skills2,aes(x=reorder(variable, value), y=value)) + geom_bar(stat='identity',fill="steelblue") + xlab('') + ylab('Count') + labs(title='Analytical Skills') + coord_flip() + theme_minimal()
+
+ggplot(sskills,aes(x=reorder(variable, value), y=value)) + geom_bar(stat='identity',fill="steelblue") + xlab('') + ylab('Count') + labs(title='Soft Skills') + coord_flip() + theme_minimal()
+
+```
+
+###The description column was used to create a word cloud
+\n\ A few words were removed such as Data, Science, Scientist, you, and will along with the stop words (e.g., "the"). Note that text stemming was not useful in this application as it truncated words like experience and business. 
+
+```{r cloud, eval=TRUE}
+dsCloud <- Corpus(VectorSource(joblisttidy$description))
+dsCloud <- tm_map(dsCloud, removePunctuation)
+dsCloud <- tm_map(dsCloud, tolower)
+dsCloud <- tm_map(dsCloud, removeWords, c("data","science","scientist" , "you" ,"will",stopwords('english')))
+wordcloud(dsCloud, max.words = 50, random.order = FALSE, scale=c(3,.15),random.color = FALSE,colors=palette())
+```
+
+###CONCLUSIONS
+
+###Soft Skills 
+\n\ As one might expect, the most often referenced soft skills are Self Starter and Organized. The least often referenced soft skill out of the top seven studied here is Communication.
+
+###Computer Skills 
+\n\ For computer skills, Perl appears more the most often and is reference nearly twice as often as Python. Javascript is the second most often appearing computer skill.
+
+###Analytical Skills
+
+\n\ For analytical skills, Machine Learnings is the most in demand.
+
+Our conclusion/recommendation for universities offering Data Science/Analytics programs is to focus on the skills that employers seek the most such as, Python, SQL, Machine Learning, Communication, and Teamwork. This will help prepare graduates enter the workforce prompt after graduation.
