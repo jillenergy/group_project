@@ -586,28 +586,28 @@ According to Student's t-test New York's and San Fransisco's salaries are simila
 ```{r ta_n_b, eval=TRUE}
 t.test(adj_nyc,adj_bost)
 ```
-According to Student's t-test New York's and Boston's salaries are different after accounting for cost of living. Hoever, the margin has dropped quite a bit.
+According to Student's t-test New York's and Boston's salaries are different after accounting for cost of living. However, the margin has dropped quite a bit.
 
 #### New York and Chicago t-test
 
 ```{r ta_n_c, eval=TRUE}
 t.test(adj_nyc,adj_chi)
 ```
-According to Student's t-test New York's and Chicago's salaries are not different after accounting for cost of living.
+According to Student's t-test New York's and Chicago's salaries are similar after accounting for cost of living.
 
 #### San Fransisco and Boston t-test
 
 ```{r ta_s_b, eval=TRUE}
 t.test(adj_sf,adj_bost)
 ```
-According to Student's t-test San Fransisco's and Boston's salaries are not different after accounting for cost of living.
+According to Student's t-test San Fransisco's and Boston's salaries are similar after accounting for cost of living.
 
 #### San Fransisco and Chicago t-test
 
 ```{r ta_s_c, eval=TRUE}
 t.test(adj_sf,adj_chi)
 ```
-According to Student's t-test San Fransisco's and Chicago's salaries are not different after accounting for cost of living.
+According to Student's t-test San Fransisco's and Chicago's salaries are similar after accounting for cost of living.
 
 #### Boston and Chicago t-test
 
@@ -636,7 +636,7 @@ According to the KS test New York's and Boston's salaries are different after ac
 ```{r ka_n_c, eval=TRUE}
 ks.test(adj_nyc,adj_chi, exact = TRUE)
 ```
-According to the KS test New York's and Chicago's salaries are not different after accounting for cost of living.
+According to the KS test New York's and Chicago's salaries are similar after accounting for cost of living.
 
 #### San Fransisco and Boston KS-test
 
@@ -650,7 +650,7 @@ According to the KS test San Fransisco's and Boston's salaries are different aft
 ```{r ka_s_c, eval=TRUE}
 ks.test(adj_sf,adj_chi, exact = TRUE)
 ```
-According to the KS test San Fransisco's and Chicago's salaries are not different after accounting for cost of living.
+According to the KS test San Fransisco's and Chicago's salaries are similar after accounting for cost of living.
 
 #### Boston and Chicago KS-test
 
