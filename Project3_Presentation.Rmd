@@ -212,8 +212,7 @@ wordcloud(dsCloud, max.words = 50, random.order = FALSE, scale=c(3,.3),random.co
 * Computer Skills 
 + For computer skills, Python appears more the most often and is reference nearly twice as often as Perl. SQL is the second most often appearing computer skill.
 
-*Analytical Skills
-
+* Analytical Skills
 + For analytical skills, Machine Learnings is the most in demand.
 
 Our conclusion/recommendation for universities offering Data Science/Analytics programs is to focus on the skills that employers seek the most such as, Python, SQL, Machine Learning, Communication, and Teamwork. This will help prepare graduates enter the workforce promptly after graduation.
